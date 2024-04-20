@@ -1,0 +1,42 @@
+import pika
+import random
+import datetime
+import json
+import threading
+
+broker_host = "172.17.66.26"
+broker_port = 5672
+
+# Autentimisinfo
+username = "admin"
+password = "Passw0rd!"
+credentials = pika.PlainCredentials(username, password)
+
+connection = pika.BlockingConnection(
+    pika.ConnectionParameters(host=broker_host, port=broker_port, credentials=credentials))
+channel = connection.channel()
+
+exchange = "Nolvak"
+
+#Loome järjekorra ja anname sellele nimeks "all_messages_queue"
+queue_name = "all_messages_queue"
+
+#Looma "durable" järjekorra, et sõnumeid kuulatakse ka siis, kui ei ole aktiivset kuulajat
+channel.queue_declare(queue=queue_name, durable=True)
+
+#Loome routing key, millega kuulame kõiki sõnumeid
+routing_key = "messageboard.messages.*"
+
+
+#Loome seoses järjekorra ja sõnumivahendaja vahe // Create a Binding between the Queue and Exchange
+channel.queue_bind(exchange=exchange, queue=queue_name, routing_key=routing_key)
+
+
+def lab_callback (ch, method, properties, body):
+    message = json.loads(body.decode())
+    print(message)
+    ch.basic_ack (delivery_tag = method.delivery_tag)
+
+channel.basic_consume(queue = queue_name, on_message_callback = lab_callback)
+channel.start_consuming()
+

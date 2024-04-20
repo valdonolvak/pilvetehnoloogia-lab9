@@ -1,0 +1,65 @@
+<html><head>
+<title>producer.py</title>
+<meta name="Generator" content="htmlizer/[Twisted, version 22.1.0]" />
+<link rel="alternate" href="producer.py" type="text/x-python" />
+
+</head>
+<body>
+<pre><span class="py-src-variable">import</span> <span class="py-src-variable">pika</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">random</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">datetime</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">json</span>
+<span class="py-src-variable">import</span> <span class="py-src-variable">threading</span>
+
+<span class="py-src-variable">broker_host</span> = <span class="py-src-string">&quot;172.17.66.26&quot;</span>
+<span class="py-src-variable">broker_port</span> = <span class="py-src-number">5672</span>
+
+<span class="py-src-comment"># Autentimisinfo</span>
+<span class="py-src-variable">username</span> = <span class="py-src-string">&quot;admin&quot;</span>
+<span class="py-src-variable">password</span> = <span class="py-src-string">&quot;Passw0rd!&quot;</span>
+<span class="py-src-variable">credentials</span> = <span class="py-src-variable">pika</span>.<span class="py-src-variable">PlainCredentials</span>(<span class="py-src-variable">username</span>, <span class="py-src-variable">password</span>)
+
+<span class="py-src-variable">connection</span> = <span class="py-src-variable">pika</span>.<span class="py-src-variable">BlockingConnection</span>(
+    <span class="py-src-variable">pika</span>.<span class="py-src-variable">ConnectionParameters</span>(<span class="py-src-variable">host</span>=<span class="py-src-variable">broker_host</span>, <span class="py-src-variable">port</span>=<span class="py-src-variable">broker_port</span>, <span class="py-src-variable">credentials</span>=<span class="py-src-variable">credentials</span>))
+<span class="py-src-variable">channel</span> = <span class="py-src-variable">connection</span>.<span class="py-src-variable">channel</span>()
+
+<span class="py-src-variable">message</span> = {
+    <span class="py-src-string">&quot;id&quot;</span>: <span class="py-src-string">&quot;f634f37d-218d-4f04-a5ab-8e61b14ceedd&quot;</span>,
+    <span class="py-src-string">&quot;content&quot;</span>: <span class="py-src-string">&quot;Parcel is arriving in 10min&quot;</span>,
+    <span class="py-src-string">&quot;img_path&quot;</span>: <span class="py-src-string">&quot;https://mywebsite.blob.core.windows.net/lab9/fognode.png&quot;</span>,
+    <span class="py-src-string">&quot;timestamp&quot;</span>: <span class="py-src-string">&quot;2024-04-08 09:20:57&quot;</span>
+}
+
+<span class="py-src-variable">message_str</span> = <span class="py-src-variable">json</span>.<span class="py-src-variable">dumps</span>(<span class="py-src-variable">message</span>)
+
+<span class="py-src-variable">routing_key</span> = <span class="py-src-string">&quot;messageboard.messages.urgent&quot;</span>
+<span class="py-src-variable">exchange</span> = <span class="py-src-string">&quot;Nolvak&quot;</span>
+
+<span class="py-src-comment"># Funktsioon sõnumi edastamiseks</span>
+<span class="py-src-variable">def</span> <span class="py-src-identifier">send_message</span>():
+    <span class="py-src-variable">channel</span>.<span class="py-src-variable">basic_publish</span>(
+        <span class="py-src-variable">exchange</span>=<span class="py-src-variable">exchange</span>,
+        <span class="py-src-variable">routing_key</span>=<span class="py-src-variable">routing_key</span>,
+        <span class="py-src-variable">body</span>=<span class="py-src-variable">message_str</span>)
+
+<span class="py-src-comment"># Funktsioon sõnumite edastamise tsükli käivitamiseks</span>
+<span class="py-src-variable">def</span> <span class="py-src-identifier">send_messages</span>():
+    <span class="py-src-variable">while</span> <span class="py-src-variable">True</span>:
+        <span class="py-src-variable">send_message</span>()
+        <span class="py-src-comment"># Oota 5 sekundit enne järgmise sõnumi saatmist</span>
+        <span class="py-src-variable">threading</span>.<span class="py-src-variable">Event</span>().<span class="py-src-variable">wait</span>(<span class="py-src-number">5</span>)
+
+<span class="py-src-comment"># Käivita sõnumite edastamise tsükkel uues lõimes</span>
+<span class="py-src-variable">send_thread</span> = <span class="py-src-variable">threading</span>.<span class="py-src-variable">Thread</span>(<span class="py-src-variable">target</span>=<span class="py-src-variable">send_messages</span>)
+<span class="py-src-variable">send_thread</span>.<span class="py-src-variable">start</span>()
+
+<span class="py-src-comment"># Oota kasutaja klaviatuuri katkestust</span>
+<span class="py-src-variable">input</span>(<span class="py-src-string">&quot;Press any key to stop sending messages...\n&quot;</span>)
+
+<span class="py-src-comment"># Katkesta sõnumite saatmine</span>
+<span class="py-src-variable">send_thread</span>.<span class="py-src-variable">join</span>()
+
+<span class="py-src-comment"># Sulge ühendus</span>
+<span class="py-src-variable">connection</span>.<span class="py-src-variable">close</span>()
+</pre>
+</body>
